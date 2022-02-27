@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block main %}
+<h1 class="page-header">Files</h1>
+
+<ul class="img-grid">
+{% for item in filename %}
+    <li><img src="{{ url_for('get_image', filename=item) }}" width="300" height="300"></li>
+{% endfor %}
+</ul>
+
+
+
+{% endblock %}
+
+

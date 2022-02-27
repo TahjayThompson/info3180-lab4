@@ -6,18 +6,32 @@ This file creates your application.
 """
 import os
 from app import app
-from flask import render_template, request, redirect, url_for, flash, session, abort
+from flask import render_template, request, redirect, url_for, flash, session, abort,send_from_directory
 from werkzeug.utils import secure_filename
+from app.forms import UploadForm
+from os import walk
 
 
 ###
 # Routing for your application.
 ###
 
+
+def get_uploaded_images():
+    path = os.path.join(app.config['UPLOAD_FOLDER'])
+    filenames = next(walk(path), (None, None, []))[2]
+    files_lst =[file_name for file_name in filenames if file_name !=  '.gitkeep']
+    return files_lst
+
+
+
+
 @app.route('/')
 def home():
     """Render website's home page."""
     return render_template('home.html')
+
+
 
 
 @app.route('/about/')
@@ -26,21 +40,63 @@ def about():
     return render_template('about.html', name="Mary Jane")
 
 
+
+
+
+@app.route("/files")
+def files():
+    if not session.get('logged_in'):
+        abort(401)
+    files_= get_uploaded_images()
+    print(files_)
+    return render_template('files.html',filename=files_)
+
+    # for i in files_:
+        # print(i)
+        # name = get_image(i)
+        # print(name)
+        
+  
+        # else:
+        # return render_template('files.html',name=name)
+
+  
+@app.route("/uploads/<filename>")
+def get_image(filename):
+    return send_from_directory(os.path.join(os.getcwd(),app.config['UPLOAD_FOLDER']), filename)
+
+
 @app.route('/upload', methods=['POST', 'GET'])
 def upload():
+
+
     if not session.get('logged_in'):
         abort(401)
 
+
     # Instantiate your form class
+    form = UploadForm()
 
     # Validate file upload on submit
-    if request.method == 'POST':
-        # Get file data and save to your uploads folder
 
-        flash('File Saved', 'success')
-        return redirect(url_for('home'))
+    if form.validate_on_submit():
+        f = form.upload.data
+        if f.filename == '':
+            flash('No selected file')
+       
+        if request.method == 'POST':
+            # Get file data and save to your uploads folder
+            filename = secure_filename(f.filename)
+            path = os.path.join(app.config['UPLOAD_FOLDER'],filename)
+            f.save(path)
+            flash('File Saved', 'success')
+            
+            return redirect(url_for('home'))
+    flash_errors(form)
+    return render_template('upload.html', form=form)
 
-    return render_template('upload.html')
+
+
 
 
 @app.route('/login', methods=['POST', 'GET'])
